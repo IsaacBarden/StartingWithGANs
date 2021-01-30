@@ -34,6 +34,7 @@ def weights_init(m):
 class Generator(nn.Module):
     def __init__(self, num_colors):
         super(Generator, self).__init__()
+        self.num_colors = num_colors
         self.main = nn.Sequential(
             #Z is latent vector of noise
             nn.ConvTranspose2d(            SIZE_Z, G_FEATURE_SIZE * 8, 4, 1, 0, bias=False),
@@ -57,13 +58,14 @@ class Generator(nn.Module):
             #size: num_colors x 64 x 64
         )
 
-    def forward(self, input, num_colors):
-        output = self.main(input, num_colors)
+    def forward(self, input):
+        output = self.main(input)
         return output
 
 class Discriminator(nn.Module):
     def __init__(self, num_colors):
         super(Discriminator, self).__init__()
+        self.num_colors = num_colors
         self.main = nn.Sequential(
             #input is num_colors x 64 x 64
             nn.Conv2d(    num_colors,       D_FEATURE_SIZE, 4, 2, 1, bias=False),
@@ -78,7 +80,7 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             #size: 256 x 8 x 8
             nn.Conv2d(D_FEATURE_SIZE * 4, D_FEATURE_SIZE * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_FEATURE_SIZE * 4),
+            nn.BatchNorm2d(D_FEATURE_SIZE * 8),
             nn.LeakyReLU(0.2, inplace=True),
             #size: 512 x 4 x 4
             nn.Conv2d(D_FEATURE_SIZE * 8,                  1, 4, 1, 0, bias=False),
@@ -86,8 +88,8 @@ class Discriminator(nn.Module):
             #size: 1 x 2 x 2
         )
 
-    def forward(self, input, num_colors):
-        output = self.main(input, num_colors)
+    def forward(self, input):
+        output = self.main(input)
         return output.view(-1, 1).squeeze(1)
 
 def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002, beta1=0.5, 
@@ -174,8 +176,8 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
 
     netD = Discriminator(num_colors).to(device)
     netD.apply(weights_init)
-    if netD != "":
-        netD.load_state_dict(torch.load(netD))
+    if existing_D != "":
+        netD.load_state_dict(torch.load(existing_D))
     print(netD)
 
     criterion = nn.BCELoss()
@@ -216,11 +218,11 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
 
             netG.zero_grad()
             label.fill_(real_label)
-            output = netD(fake)
+            output = netD(fake,)
             errG = criterion(output, label)
             errG.backward()
             D_G_z2 = output.mean().item()
-            optimizerG.ster()
+            optimizerG.step()
 
             print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}] Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} D(x): {D_x:.4f} D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
 
@@ -236,4 +238,4 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
         torch.save(netG.state_dict(), f"{outf}/netG_epoch_{epoch}.pth")
 
 if __name__ == '__main__':
-    run_nn(dataset="mnist", dataroot=".")
+    run_nn(dataset="cifar10", dataroot="./StartingWithGANs", outf="./StartingWithGANs", cuda=False, dry_run=True)
