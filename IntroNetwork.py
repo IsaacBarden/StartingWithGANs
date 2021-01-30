@@ -238,4 +238,4 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
         torch.save(netG.state_dict(), f"{outf}/netG_epoch_{epoch}.pth")
 
 if __name__ == '__main__':
-    run_nn(dataset="cifar10", dataroot="./StartingWithGANs", outf="./StartingWithGANs", cuda=False, dry_run=True)
+    run_nn(dataset="cifar10", dataroot="./StartingWithGANs", outf="./StartingWithGANs", cuda=False, niter=3)
