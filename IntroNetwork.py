@@ -155,7 +155,7 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
                            transform=transforms.Compose([
                                transforms.Resize(IMAGE_SIZE),
                                transforms.ToTensor(),
-                               transforms.Normalize((0.5, 0.5 ,0.5), (0.5, 0.5, 0.5))
+                               transforms.Normalize((0.5,), (0.5,))
                            ]))
         num_colors = 1
     elif dataset == "fake":
@@ -253,7 +253,7 @@ D(G(z)): {running_D_G_z1/i:.4f}/{running_D_G_z2/i:.4f}
     torch.save(netD.state_dict(), f"{outf}/netD_epoch_{epoch}.pth")
 
 if __name__ == '__main__':
-    run_nn(dataset="cifar10", 
+    run_nn(dataset="mnist", 
            dataroot="./StartingWithGANs/data", 
-           outf="./StartingWithGANs/CIFAR10",
+           outf="./StartingWithGANs/MNIST",
            cuda=True)
