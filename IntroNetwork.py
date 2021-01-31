@@ -170,15 +170,16 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
 
     netG = Generator(num_colors).to(device)
     netG.apply(weights_init)
+    previous_epoch = 0
     if existing_G != "":
         netG.load_state_dict(torch.load(existing_G))
-    print(netG)
+        previous_epoch = int(existing_G[-5])
 
     netD = Discriminator(num_colors).to(device)
     netD.apply(weights_init)
     if existing_D != "":
         netD.load_state_dict(torch.load(existing_D))
-    print(netD)
+        previous_epoch = int(existing_D[-5])
 
     criterion = nn.BCELoss()
 
@@ -192,7 +193,7 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
     if dry_run:
         niter = 1
 
-    for epoch in range(1,niter+1):
+    for epoch in range(previous_epoch+1,previous_epoch+niter+1):
         for i, data in enumerate(dataloader, 1):
             #train with real image
             netD.zero_grad()
@@ -223,19 +224,28 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
             errG.backward()
             D_G_z2 = output.mean().item()
             optimizerG.step()
-
-            if i % 100 == 0 or i == len(dataloader):
+            if i == 1:
+                print(f"Starting Epoch {epoch}...\n")
+            elif i % 100 == 0:
                 #print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}] Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} D(x): {D_x:.4f} D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
-                print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}]")
+                print(f"[{epoch}/{previous_epoch+niter}] [{i}/{len(dataloader)}]")
+            elif i == len(dataloader):
+                print(f"\nCompleted Epoch {epoch}\n")
                 vutils.save_image(real_cpu, f"{outf}/real_samples.png", normalize=True)
                 fake = netG(fixed_noise)
                 vutils.save_image(fake.detach(), f"{outf}/fake_samples_epoch_{epoch}.png", normalize=True)
-            
             if dry_run:
                 break
-        
+    
+    print("Run completed, ending execution")
     torch.save(netG.state_dict(), f"{outf}/netG_epoch_{epoch}.pth")
     torch.save(netD.state_dict(), f"{outf}/netD_epoch_{epoch}.pth")
 
 if __name__ == '__main__':
-    run_nn(dataset="cifar10", dataroot="./StartingWithGANs/data", outf="./StartingWithGANs/CIFAR10", cuda=True, niter=3)
+    run_nn(dataset="cifar10", 
+           dataroot="./StartingWithGANs/data", 
+           outf="./StartingWithGANs/CIFAR10", 
+           existing_D="./StartingWithGANs/CIFAR10/netD_epoch_3.pth",
+           existing_G="./StartingWithGANs/CIFAR10/netG_epoch_3.pth",
+           cuda=True, 
+           niter=2)
