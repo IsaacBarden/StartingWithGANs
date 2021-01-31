@@ -192,8 +192,8 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
     if dry_run:
         niter = 1
 
-    for epoch in range(niter):
-        for i, data in enumerate(dataloader, 0):
+    for epoch in range(1,niter+1):
+        for i, data in enumerate(dataloader, 1):
             #train with real image
             netD.zero_grad()
             real_cpu = data[0].to(device)
@@ -224,9 +224,9 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
             D_G_z2 = output.mean().item()
             optimizerG.step()
 
-            print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}] Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} D(x): {D_x:.4f} D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
-
-            if i % 100 == 0:
+            if i % 100 == 0 or i == len(dataloader):
+                #print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}] Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} D(x): {D_x:.4f} D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
+                print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}]")
                 vutils.save_image(real_cpu, f"{outf}/real_samples.png", normalize=True)
                 fake = netG(fixed_noise)
                 vutils.save_image(fake.detach(), f"{outf}/fake_samples_epoch_{epoch}.png", normalize=True)
@@ -234,8 +234,8 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
             if dry_run:
                 break
         
-        torch.save(netG.state_dict(), f"{outf}/netG_epoch_{epoch}.pth")
-        torch.save(netG.state_dict(), f"{outf}/netG_epoch_{epoch}.pth")
+    torch.save(netG.state_dict(), f"{outf}/netG_epoch_{epoch}.pth")
+    torch.save(netD.state_dict(), f"{outf}/netD_epoch_{epoch}.pth")
 
 if __name__ == '__main__':
-    run_nn(dataset="cifar10", dataroot="./StartingWithGANs", outf="./StartingWithGANs", cuda=False, niter=3)
+    run_nn(dataset="cifar10", dataroot="./StartingWithGANs/data", outf="./StartingWithGANs/CIFAR10", cuda=True, niter=3)

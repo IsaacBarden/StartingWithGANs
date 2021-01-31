@@ -150,7 +150,4 @@ dmypy.json
 cython_debug/
 
 # specific to this project
-*.gz
-*.png
-*.pth
 */
