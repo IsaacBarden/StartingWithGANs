@@ -194,6 +194,11 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
         niter = 1
 
     for epoch in range(previous_epoch+1,previous_epoch+niter+1):
+        running_errD = 0
+        running_errG = 0
+        running_D_x = 0
+        running_D_G_z1 = 0
+        running_D_G_z2 = 0
         for i, data in enumerate(dataloader, 1):
             #train with real image
             netD.zero_grad()
@@ -204,7 +209,7 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
             output = netD(real_cpu)
             errD_real = criterion(output, label)
             errD_real.backward()
-            D_x = output.mean().item()
+            running_D_x += output.mean().item()
 
             #train with fake image
             noise = torch.randn(batch_size, SIZE_Z, 1, 1, device=device)
@@ -213,8 +218,8 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
             output = netD(fake.detach())
             errD_fake = criterion(output, label)
             errD_fake.backward()
-            D_G_z1 = output.mean().item()
-            errD = errD_real + errD_fake
+            running_D_G_z1 += output.mean().item()
+            running_errD += errD_real.item() + errD_fake.item()
             optimizerD.step()
 
             netG.zero_grad()
@@ -222,15 +227,21 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
             output = netD(fake,)
             errG = criterion(output, label)
             errG.backward()
-            D_G_z2 = output.mean().item()
+            running_errG += errG.item()
+            running_D_G_z2 += output.mean().item()
             optimizerG.step()
             if i == 1:
                 print(f"Starting Epoch {epoch}...\n")
             elif i % 100 == 0:
-                #print(f"[{epoch}/{niter}] [{i}/{len(dataloader)}] Loss_D: {errD.item():.4f} Loss_G: {errG.item():.4f} D(x): {D_x:.4f} D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
                 print(f"[{epoch}/{previous_epoch+niter}] [{i}/{len(dataloader)}]")
             elif i == len(dataloader):
-                print(f"\nCompleted Epoch {epoch}\n")
+                print(f'''
+Completed Epoch {epoch}
+Loss_D: {running_errD/i:.4f}
+Loss_G: {running_errG/i:.4f} 
+D(x): {running_D_x/i:.4f} 
+D(G(z)): {running_D_G_z1/i:.4f}/{running_D_G_z2/i:.4f}
+                ''')
                 vutils.save_image(real_cpu, f"{outf}/real_samples.png", normalize=True)
                 fake = netG(fixed_noise)
                 vutils.save_image(fake.detach(), f"{outf}/fake_samples_epoch_{epoch}.png", normalize=True)
@@ -244,8 +255,5 @@ def run_nn(dataset, dataroot=None, workers=2, batch_size=64, niter=25, lr=0.0002
 if __name__ == '__main__':
     run_nn(dataset="cifar10", 
            dataroot="./StartingWithGANs/data", 
-           outf="./StartingWithGANs/CIFAR10", 
-           existing_D="./StartingWithGANs/CIFAR10/netD_epoch_3.pth",
-           existing_G="./StartingWithGANs/CIFAR10/netG_epoch_3.pth",
-           cuda=True, 
-           niter=2)
+           outf="./StartingWithGANs/CIFAR10",
+           cuda=True)
